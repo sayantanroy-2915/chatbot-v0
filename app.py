@@ -1,122 +1,141 @@
+import os
+import dotenv
 import streamlit as st
-import requests as req
-from time import sleep
-import json
+from huggingface_hub import InferenceClient
 
 # === === === === DECLARATION === === === ===
-TEMP_MIN = 0.0
-TEMP_DEF = 1.0
-TEMP_MAX = 2.0
-STREAM_MIN = 0.01
-STREAM_DEF = 0.1
-STREAM_MAX = 1.0
-API_URL = "http://127.0.0.1:11434/api/"
+
+LIMIT = 15   # Max no. of user messages
 
 defaults = {
+	"hf_token": None,
+	"model_edit": "HuggingFaceTB/SmolLM3-3B",
 	"model": None,
-	"models": [],
+	"model_valid": False,
+	"client": None,
 	"system": "",
-	"temp": TEMP_DEF,
-	"stream": False,
-	"stream_delay": STREAM_DEF,
 	"messages": [],
-	"avatar_user": "👨🏻",
-	"avatar_bot": "🤖"
+	"num_messages": 0
 }
 
 for k, v in defaults.items():
 	st.session_state.setdefault(k, v)
 
-st.set_page_config(page_title="ChatBot", page_icon="🤖")
+st.set_page_config(page_title="ChatBot", page_icon=":material/smart_toy:", layout="wide")
+dotenv.load_dotenv()
+
+st.markdown(
+	"""
+		<style>
+			[data-testid="stChatMessageAvatarUser"] {
+				display: none;
+			}
+			[data-testid="stChatMessageAvatarAssistant"] {
+				display: none;
+			}
+		</style>
+	""",
+	unsafe_allow_html=True
+)
+# === === === === FUNCTIONS === === === ===
+
+def display_message(role,msg,num):
+	with st.container(horizontal=True, horizontal_alignment=("right" if role == "user" else "left")):
+		with st.chat_message(role, avatar=None, width="content"):
+			st.markdown(msg)
+			if role == "user":
+				st.caption(f"{num}/{LIMIT}")
+
+def validate_model():
+	try:
+		client = InferenceClient(
+			provider="hf-inference",
+			api_key=st.session_state.hf_token or os.environ["HF_TOKEN"]
+		)
+		completion = client.chat.completions.create(
+			model=st.session_state.model_edit,
+			messages=[{"role": "user", "content": "Hi!"}]
+		)
+		if completion.choices[0].message:
+			st.session_state.model_valid = True
+			st.session_state.model = st.session_state.model_edit
+			st.session_state.client = client
+			st.toast("Model and token validated", icon=":material/check_box:")
+		else:
+			st.toast("Validation failed! Please try again.", icon=":material/warning:")
+	except Exception as e:
+		st.toast(f"Validation failed! {e}", icon=":material/warning:")
+
+def clear_chat():
+	st.session_state.messages = []
+	st.session_state.num_messages = 0
+	st.toast("Chat history cleared!", icon=":material/mop:")
 
 # === === === === DISPLAY PREVIOUS CHATS IN SESSION === === === ===
-for message in st.session_state.messages:
-	with st.chat_message("user", avatar=(st.session_state.avatar_bot if message["role"] == "assistant" else st.session_state.avatar_user), width="content"):
-		st.markdown(message["content"])
+
+def display_all_msgs():
+	i = 1
+	for message in st.session_state.messages:
+		display_message(message["role"],message["content"],i)
+		if message["role"] == "user":
+			i += 1
+
+display_all_msgs()
 
 # === === === === SIDEBAR === === === ===
-with st.sidebar:
-	# Model Selector
-	def lookup_models():
-		res = req.get(API_URL + "tags")
-		if res.status_code == 200:
-			st.session_state.models = [model["name"] for model in res.json()["models"]]
-		else:
-			st.toast("No LLM found, check if Ollama is running", icon="🚨")
 
-	lookup_models()
-	st.selectbox("Model", st.session_state.models, key="model")
-	st.button("Refresh", on_click=lookup_models, icon="🔃", type="tertiary")
+def sidebar():
+	with st.sidebar:
+		# HF token input
+		with st.popover("HF Token", icon=":material/vpn_key:", help="Enter HF token here"):
+			st.text_input("Token", type="password", key="hf_token", label_visibility="collapsed")
+		st.header("", divider=True)
+		# Model input
+		with st.expander(f"Model `{st.session_state.model}`", icon=":material/network_intelligence:" ,expanded=True):
+			st.text_input("Model", key="model_edit", label_visibility="collapsed")
+			st.button("Validate", on_click=validate_model, icon=":material/check_box:", help="Click on it to validate the above model")
+		st.header("", divider=True)
+		# System input
+		with st.expander("Behavior", icon=":material/smart_toy:"):
+			st.text_area(label="System", key="system", disabled=(not st.session_state.model_valid), label_visibility="collapsed")
+		st.header("", divider=True)
+		# Clear chat
+		st.button(
+			"Clear Chat",
+			on_click=clear_chat,
+			disabled=(st.session_state.num_messages == 0),
+			icon=":material/mop:",
+			type="tertiary"
+		)
 
-	st.divider()
-	# System input
-	st.text_area(label="Chatbot Behavior (System)", key="system", disabled=(st.session_state.model is None))
-
-	st.divider()
-
-	# Stream option
-	st.toggle("Streaming", key="stream", disabled=(st.session_state.model is None))
-	st.session_state.stream_delay = st.slider("Delay (seconds)", STREAM_MIN, STREAM_MAX, st.session_state.stream_delay, disabled=(not st.session_state.stream))
-
-	st.divider()
-
-	# Temperature slider
-	st.session_state.temp = st.slider("Creativity (Temperature)", TEMP_MIN, TEMP_MAX, st.session_state.temp, disabled=(st.session_state.model is None))
-
-	st.divider()
-
-	# Avatar selector
-	st.selectbox("User Avatar", ["👨🏻", "👩🏻", "👨🏻‍💻", "👩🏻‍💻", "👤"], index=0, key="avatar_user", accept_new_options=True)
-	st.selectbox("Bot Avatar", ["🤖", "💻", "🖥️", "📱", "🦙"], index=0, key="avatar_bot", accept_new_options=True)
-
-	st.divider()
-
-	# Clear chat
-	def clear_chat():
-		st.session_state.messages = []
-		st.toast("Chat history cleaned!", icon="✨")
-
-	st.button("Clear Chat", on_click=clear_chat, disabled=(len(st.session_state.messages) == 0), icon="🧹", type="tertiary")
+sidebar()
 
 #  === === === === CHAT MECHANISM === === === ===
+
+if not st.session_state.model_valid:
+	st.caption("Enter your __:material/vpn_key: Hugging Face token__, enter __:material/network_intelligence: Model__ identifier, and click __:material/check_box: Validate__ to continue...")
 # User input
-new_message = st.chat_input("Say something...", max_chars=512, disabled=(st.session_state.model is None))
+new_message = st.chat_input("Say something...", max_chars=500, disabled=((not st.session_state.model_valid) or st.session_state.num_messages >= LIMIT))
 if new_message:
-	with st.chat_message("user", avatar=st.session_state.avatar_user, width="content"):
-		st.markdown(new_message)
+	st.session_state.num_messages += 1
+	display_message("user", new_message, st.session_state.num_messages)
 	st.session_state.messages.append({"role": "user", "content": new_message})
 
 	# Send request
-	req_body = {
-		"model": st.session_state.model,
-		"messages": ([{"role": "system", "content": st.session_state.system}] if len(st.session_state.system) > 0 else [
-			None]) + st.session_state.messages,
-		"stream": st.session_state.stream,
-		"options": {"temperature": st.session_state.temp}
-	}
-
 	with st.spinner("Typing..."):
-		res = req.post(API_URL + "chat", json=req_body)
+		completion = st.session_state.client.chat.completions.create(
+			model=st.session_state.model,
+			messages=([{"role": "system", "content": st.session_state.system}] if len(st.session_state.system) > 0 else []) + st.session_state.messages,
+		)
 
 	# Handle response
-	if res.status_code == 200:
-		if st.session_state.stream:
-			with st.chat_message("user", avatar=st.session_state.avatar_bot, width="content"):
-				full_message = ""
-				placeholder = st.empty()
-				for chunk in res.iter_lines():
-					if chunk:
-						full_message += json.loads(chunk)["message"]["content"]
-						placeholder.markdown(full_message)
-						sleep(st.session_state.stream_delay)
-				st.session_state.messages.append({"role": "assistant", "content": full_message})
-		else:
-			with st.chat_message("user", avatar=st.session_state.avatar_bot, width="content"):
-				if new_message := res.json().get("message", {}).get("content", ""):
-					st.markdown(new_message)
-					st.session_state.messages.append({"role": "assistant", "content": new_message})
-				elif err := res.json().get("error", {}):
-					st.markdown(err)
-					st.session_state.messages.append({"role": "assistant", "content": err})
+	if bot_response := completion["choices"][0]["message"]["content"]:
+		if "<think>" in bot_response:
+			bot_response = bot_response[(bot_response.find("</think>") + 8):]
+		display_message("assistant",bot_response,0)
+		st.session_state.messages.append({"role": "assistant", "content": bot_response})
 	else:
-		st.toast(f"{res.status_code}", icon="🚨")
+		st.toast("Message not received", icon=":material/warning:")
+
+if st.session_state.num_messages >= LIMIT:
+	st.error("You've reached your limit")
