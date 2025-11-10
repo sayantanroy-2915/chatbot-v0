@@ -1,13 +1,13 @@
-# Streamlit LLM Application - Single-turn Interaction Interface 
+# Streamlit LLM Application - Chatbot Interface 
 
 This repository contains the source code for the chatbot application explained in the following article:
 
-👉🏻 [Read the article on Hashnode](https://roysntnwr0.hashnode.dev/streamlit-llm-app#heading-application-a-single-turn-interaction-interface)
+👉🏻 [Read the article on Hashnode](https://roysntnwr0.hashnode.dev/streamlit-llm-app#heading-application-b-chatbot-interface)
 
 ## How to run it
 
 1. Setup `Ollama`. (refer to the article for more detail)
-2. Clone the repository and checkout branch `hashnode_article_1a`
+2. Clone the repository and checkout branch `hashnode_article_1b`
 3. Create virtual environment, activate it, and install requirements \ 
 For Windows
 ```bash
