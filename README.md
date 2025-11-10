@@ -1,54 +1,27 @@
-# 🤖 Local LLM Chatbot — Version 0.1
-Welcome to the v0 release of a lightweight chatbot powered by Streamlit and Ollama. This version is kept minimal, designed to run locally, and uses open-source language models like LLaMA, Mistral, etc.
+# Streamlit LLM Application - Single-turn Interaction Interface 
 
-## 💡 Features
+This repository contains the source code for the chatbot application explained in the following article:
 
-* Chat with open-source LLMs (via Ollama)
-* Easy-to-use UI built with Streamlit
-* Switch between available local models
-* Adjustable temperature and system prompts
-* Avatars for user and bot
+👉🏻 [Read the article on Hashnode](https://roysntnwr0.hashnode.dev/streamlit-llm-app#heading-application-a-single-turn-interaction-interface)
 
-## 🚀 Getting Started
-### 1. Install Dependencies
-Create a virtual environment (optional but recommended), then install:
+## How to run it
 
-```pip install -r requirements.txt```
-
-Or, install manually:
-
-```pip install streamlit requests```
-
-### 2. Set Up Ollama
-Ensure Ollama is installed and running
-
-```ollama serve```
-
-Pull a model (skip if model exists)
-
-```ollama pull llama3```
-
-```ollama pull mistral```
-
-```ollama pull gemma```
-
-### 3. Run the App
-Launch the chatbot
-
-```streamlit run app.py```
-
-Then open your browser to http://localhost:8501
-
-## 🛠️ Configuration
-
-All configurations are available in the sidebar
-
-🔄 Change the model on the fly
-
-🧠 Add a custom system prompt
-
-🔥 Adjust the temperature (creativity level)
-
-👤 Change avatars
-
-🧹 Clear the chat if things get too weird
+1. Setup `Ollama`. (refer to the article for more detail)
+2. Clone the repository and checkout branch `hashnode_article_1a`
+3. Create virtual environment, activate it, and install requirements \ 
+For Windows
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+```
+For Linux
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip3 install -r requirements.txt
+```
+4. Run the app
+```bash
+streamlit run app.py
+```
