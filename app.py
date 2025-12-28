@@ -5,7 +5,7 @@ from huggingface_hub import InferenceClient
 
 # === === === === DECLARATION === === === ===
 
-LIMIT = 15   # Max no. of user messages
+LIMIT = 30   # Max no. of user messages
 
 defaults = {
 	"hf_token": None,
@@ -44,7 +44,8 @@ def display_message(role,msg,num):
 		with st.chat_message(role, avatar=None, width="content"):
 			st.markdown(msg)
 			if role == "user":
-				st.caption(f"{num}/{LIMIT}")
+				with st.container(horizontal=True, horizontal_alignment="right"):
+					st.caption(f"{num}/{LIMIT}", width="content")
 
 def validate_model():
 	try:
