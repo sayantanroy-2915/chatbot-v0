@@ -1,7 +1,7 @@
 import streamlit as st
 import requests as req
 
-st.set_page_config("Single Interaction", page_icon=":material/network_intel_node")
+st.set_page_config("Single Interaction", page_icon=":material/network_intel_node:")
 
 API_URL = "http://127.0.0.1:11434/api/"
 
